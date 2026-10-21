@@ -1,14 +1,7 @@
 import { ActiveVisit, router } from '../index'
 import { page as currentPage } from '../page'
-import {
-  CancelToken,
-  InfiniteScrollRequest,
-  Page,
-  PendingVisit,
-  ReloadOptions,
-  ScrollProp,
-  UseInfiniteScrollDataManager,
-} from '../types'
+import { CancelToken, Page, PendingVisit, ReloadOptions, ScrollProp, UseInfiniteScrollDataManager } from '../types'
+import type { InfiniteScrollRequest } from '../types'
 
 const MERGE_INTENT_HEADER = 'X-Inertia-Infinite-Scroll-Merge-Intent'
 
@@ -207,7 +200,16 @@ export const useInfiniteScrollData = (options: {
         page,
         pageName,
         propName: options.getPropName(),
-        reloadOptions: requestOptions,
+        reloadOptions: {
+          ...requestOptions,
+          preserveScroll: true,
+          preserveState: true,
+          async: true,
+          headers: {
+            ...requestOptions.headers,
+            'Cache-Control': 'no-cache',
+          },
+        },
       })
 
       return

@@ -2428,6 +2428,10 @@ app.get('/infinite-scroll/manual-reverse', (req, res) =>
 app.get('/infinite-scroll/update-query-string', (req, res) =>
   renderInfiniteScroll(req, res, 'InfiniteScroll/UpdateQueryString'),
 )
+app.get('/infinite-scroll/custom-request', (req, res) => renderInfiniteScroll(req, res, 'InfiniteScroll/CustomRequest'))
+app.get('/infinite-scroll/custom-request/load', (req, res) =>
+  renderInfiniteScroll(req, res, 'InfiniteScroll/CustomRequest'),
+)
 app.get('/infinite-scroll/custom-element', (req, res) => renderInfiniteScroll(req, res, 'InfiniteScroll/CustomElement'))
 app.get('/infinite-scroll/preserve-url', (req, res) => renderInfiniteScroll(req, res, 'InfiniteScroll/PreserveUrl'))
 app.get('/infinite-scroll/scroll-container', (req, res) =>

@@ -1,27 +1,13 @@
 import { hrefToUrl, router, urlHasProtocol, urlToString } from '..'
 import debounce from '../debounce'
 import { getElementsInViewportFromCollection } from '../domUtils'
+import { InfiniteScrollResolveUrl } from '../types'
 import { page as currentPage } from './../page'
 import Queue from './../queue'
 import { getPageFromElement } from './elements'
 
 // Shared queue among all instances to ensure URL updates are processed sequentially
 const queue = new Queue<Promise<void>>()
-
-let initialUrl: URL | null
-let payloadUrl: URL | null
-let initialUrlWasAbsolute: boolean | null = null
-
-const isCurrentLocation = (url: string) => {
-  if (typeof window === 'undefined') {
-    return false
-  }
-
-  const current = hrefToUrl(window.location.href)
-  const next = hrefToUrl(url)
-
-  return current.pathname === next.pathname && current.search === next.search && current.hash === next.hash
-}
 
 /**
  * As users scroll through infinite content, this system updates the URL to reflect
@@ -32,81 +18,46 @@ export const useInfiniteScrollQueryString = (options: {
   getPageName: () => string
   getItemsElement: () => HTMLElement
   shouldPreserveUrl: () => boolean
-  getResolveUrl?: () => ((details: { page: string; pageName: string }) => string) | undefined
+  getResolveUrl?: () => InfiniteScrollResolveUrl | undefined
 }) => {
   let enabled = true
 
   const queuePageUpdate = (page: string) => {
-    const resolveUrl = options.getResolveUrl?.()
-
-    if (resolveUrl) {
-      queue.add(() => {
-        if (!enabled) {
-          return Promise.resolve()
+    queue.add(() => {
+      return new Promise((resolve) => {
+        if (!enabled || options.shouldPreserveUrl()) {
+          return resolve()
         }
 
-        const url = resolveUrl({ page, pageName: options.getPageName() })
+        const resolveUrl = options.getResolveUrl?.()
+        const pageName = options.getPageName()
+        const currentUrl = resolveUrl ? window.location.href : currentPage.get().url
+        const nextUrl = hrefToUrl(currentUrl)
 
-        if (!isCurrentLocation(url)) {
-          router.replace({
-            url,
-            preserveScroll: true,
-            preserveState: true,
-          })
-        }
-
-        return Promise.resolve()
-      })
-
-      return
-    }
-
-    queue
-      .add(() => {
-        return new Promise((resolve) => {
-          if (!enabled) {
-            initialUrl = payloadUrl = null
-            return resolve()
-          }
-
-          if (!initialUrl || !payloadUrl) {
-            const currentPageUrl = currentPage.get().url
-            initialUrl = hrefToUrl(currentPageUrl)
-            payloadUrl = hrefToUrl(currentPageUrl)
-            initialUrlWasAbsolute = urlHasProtocol(currentPageUrl)
-          }
-
-          const pageName = options.getPageName()
-          const searchParams = payloadUrl.searchParams
-
+        if (!resolveUrl) {
           // Clean URLs: don't show ?page=1 in the URL, just remove the parameter entirely
           if (page === '1') {
-            searchParams.delete(pageName)
+            nextUrl.searchParams.delete(pageName)
           } else {
-            searchParams.set(pageName, page)
+            nextUrl.searchParams.set(pageName, page)
           }
-
-          setTimeout(() => resolve())
-        })
-      })
-      .finally(() => {
-        if (
-          enabled &&
-          initialUrl &&
-          payloadUrl &&
-          initialUrl.href !== payloadUrl.href &&
-          initialUrlWasAbsolute !== null
-        ) {
-          // Update URL without triggering a page reload or affecting scroll position
-          router.replace({
-            url: urlToString(payloadUrl, initialUrlWasAbsolute),
-            preserveScroll: true,
-            preserveState: true,
-          })
         }
 
-        initialUrl = payloadUrl = initialUrlWasAbsolute = null
+        const url = resolveUrl ? resolveUrl({ page, pageName }) : urlToString(nextUrl, urlHasProtocol(currentUrl))
+
+        if (hrefToUrl(url).href === hrefToUrl(currentUrl).href) {
+          return resolve()
+        }
+
+        // The next resolver may read window.location, so wait for this visit to finish.
+        router.replace({
+          url,
+          preserveScroll: true,
+          preserveState: true,
+          onFinish: () => resolve(),
+        })
       })
+    })
   }
 
   // Debounced to avoid excessive URL updates during fast scrolling

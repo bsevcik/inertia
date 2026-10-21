@@ -1517,6 +1517,44 @@ test.describe('URL query string management', () => {
   })
 })
 
+test.describe('Caller-owned page visit and URL', () => {
+  test('it loads pages through the request callback and writes the URL from resolveUrl', async ({ page }) => {
+    requests.listen(page)
+    await page.goto('/infinite-scroll/custom-request?timestamps=true#task-1')
+
+    await expect(page.getByText('User 15')).toBeVisible()
+
+    await scrollToBottom(page)
+    await expect.poll(() => infiniteScrollRequests().length).toBe(1)
+    await expect(page.getByText('User 30')).toBeVisible()
+    await expect(page.getByText('Loading...')).toBeHidden()
+
+    // The caller's visit loaded the page, not router.reload()...
+    expect(new URL(infiniteScrollRequests()[0].url()).pathname).toBe('/infinite-scroll/custom-request/load')
+
+    // ...and the caller's lifecycle forwarding tagged the new rows...
+    await expect.poll(async () => (await page.locator('[data-infinite-scroll-page="2"]').all()).length).toBe(15)
+
+    // ...so the visible page is written by resolveUrl, keeping browser-only query and hash values.
+    await page.getByText('User 20').scrollIntoViewIfNeeded()
+    await page.waitForFunction(() => window.location.search.includes('page=2'))
+    expect(new URL(page.url()).search).toBe('?timestamps=true&page=2')
+    expect(new URL(page.url()).hash).toBe('#task-1')
+
+    // Scrolling back through an already loaded page rewrites the URL without another request...
+    await page.getByText('User 5', { exact: true }).scrollIntoViewIfNeeded()
+    await page.waitForFunction(() => !window.location.search.includes('page='))
+    expect(new URL(page.url()).search).toBe('?timestamps=true')
+    expect(new URL(page.url()).hash).toBe('#task-1')
+    expect(infiniteScrollRequests().length).toBe(1)
+
+    // ...and the next page still loads through the caller's visit.
+    await scrollToBottom(page)
+    await expect.poll(() => infiniteScrollRequests().length).toBe(2)
+    await expect(page.getByText('User 40')).toBeVisible()
+  })
+})
+
 test.describe('Scroll position preservation', () => {
   test('it maintains scroll position when loading previous pages', async ({ page }) => {
     requests.listen(page)

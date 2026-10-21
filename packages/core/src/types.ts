@@ -884,12 +884,13 @@ export type InfiniteScrollRequestDetails = {
   pageName: string
   propName: string
   /**
-   * The reload options `<InfiniteScroll>` would have passed to `router.reload`.
-   * `onBefore`, `onBeforeUpdate`, `onSuccess`, `onFinish`, and `onCancelToken`
-   * keep the component's loading state and row tagging in sync. Forward them
-   * from the visit that actually loads the page.
+   * The effective visit options, including `router.reload`'s scroll/state
+   * preservation, async, and cache-control defaults. Forward these options to
+   * the visit that loads the page. `onBefore`, `onBeforeUpdate`, `onSuccess`,
+   * `onFinish`, and `onCancelToken` keep loading state, row tagging, scroll
+   * preservation, and cancellation in sync.
    */
-  reloadOptions: ReloadOptions
+  reloadOptions: ReloadOptions & Pick<Visit, 'preserveScroll' | 'preserveState' | 'async'>
 }
 
 export type InfiniteScrollRequest = (details: InfiniteScrollRequestDetails) => void
