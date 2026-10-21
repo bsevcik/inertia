@@ -1,6 +1,14 @@
 import { ActiveVisit, router } from '../index'
 import { page as currentPage } from '../page'
-import { CancelToken, Page, PendingVisit, ReloadOptions, ScrollProp, UseInfiniteScrollDataManager } from '../types'
+import {
+  CancelToken,
+  InfiniteScrollRequest,
+  Page,
+  PendingVisit,
+  ReloadOptions,
+  ScrollProp,
+  UseInfiniteScrollDataManager,
+} from '../types'
 
 const MERGE_INTENT_HEADER = 'X-Inertia-Infinite-Scroll-Merge-Intent'
 
@@ -33,6 +41,7 @@ export const useInfiniteScrollData = (options: {
     details: InfiniteScrollOnCompleteDetails,
   ) => void
   onReset?: () => void
+  getRequest?: () => InfiniteScrollRequest | undefined
 }): UseInfiniteScrollDataManager => {
   const getScrollPropFromCurrentPage = (): ScrollProp => {
     const scrollProp = currentPage.get().scrollProps?.[options.getPropName()]
@@ -142,10 +151,11 @@ export const useInfiniteScrollData = (options: {
 
     state.loading = true
 
-    router.reload({
+    const pageName = getPageName()
+    const requestOptions: ReloadOptions = {
       preserveErrors: true,
       ...reloadOptions,
-      data: { ...(reloadOptions.data || {}), [getPageName()]: page },
+      data: { ...(reloadOptions.data || {}), [pageName]: page },
       only: [...(reloadOptions.only || []), options.getPropName()],
       preserveUrl: true, // we handle URL updates manually via useInfiniteScrollQueryString()
       headers: {
@@ -187,7 +197,23 @@ export const useInfiniteScrollData = (options: {
 
         reloadOptions.onFinish?.(visit)
       },
-    })
+    }
+
+    const request = options.getRequest?.()
+
+    if (request) {
+      request({
+        side,
+        page,
+        pageName,
+        propName: options.getPropName(),
+        reloadOptions: requestOptions,
+      })
+
+      return
+    }
+
+    router.reload(requestOptions)
   }
 
   const getLastLoadedPage = () => state.lastLoadedPage

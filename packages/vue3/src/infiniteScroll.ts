@@ -97,6 +97,14 @@ const InfiniteScroll = defineComponent({
       type: Object as PropType<ReloadOptions>,
       default: () => ({}),
     },
+    request: {
+      type: Function as PropType<InfiniteScrollComponentBaseProps['request']>,
+      default: undefined,
+    },
+    resolveUrl: {
+      type: Function as PropType<InfiniteScrollComponentBaseProps['resolveUrl']>,
+      default: undefined,
+    },
   },
   inheritAttrs: false,
   setup(props, { slots, attrs, expose }) {
@@ -137,6 +145,8 @@ const InfiniteScroll = defineComponent({
       shouldFetchPrevious: () => !props.onlyNext,
       shouldPreserveUrl: () => props.preserveUrl,
       getReloadOptions: () => props.params,
+      getRequest: () => props.request,
+      getResolveUrl: () => props.resolveUrl,
 
       // Elements
       getTriggerMargin: () => props.buffer,

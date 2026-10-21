@@ -97,6 +97,8 @@ const InfiniteScroll = forwardRef<InfiniteScrollRef, ComponentProps>(
       next,
       loading,
       params = {},
+      request,
+      resolveUrl,
       onlyNext = false,
       onlyPrevious = false,
       ...props
@@ -149,6 +151,8 @@ const InfiniteScroll = forwardRef<InfiniteScrollRef, ComponentProps>(
       reverse,
       preserveUrl,
       params,
+      request,
+      resolveUrl,
     })
 
     callbackPropsRef.current = {
@@ -158,6 +162,8 @@ const InfiniteScroll = forwardRef<InfiniteScrollRef, ComponentProps>(
       reverse,
       preserveUrl,
       params,
+      request,
+      resolveUrl,
     }
 
     const [infiniteScroll, setInfiniteScroll] = useState<UseInfiniteScrollProps | null>(null)
@@ -199,6 +205,8 @@ const InfiniteScroll = forwardRef<InfiniteScrollRef, ComponentProps>(
         shouldFetchPrevious: () => !callbackPropsRef.current.onlyNext,
         shouldPreserveUrl: () => callbackPropsRef.current.preserveUrl,
         getReloadOptions: () => callbackPropsRef.current.params,
+        getRequest: () => callbackPropsRef.current.request,
+        getResolveUrl: () => callbackPropsRef.current.resolveUrl,
 
         // Elements
         getTriggerMargin: () => callbackPropsRef.current.buffer,

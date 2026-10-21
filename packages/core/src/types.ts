@@ -878,6 +878,30 @@ export type FormComponentSlotProps<TForm extends object = Record<string, any>> =
 
 export type FormComponentRef<TForm extends object = Record<string, any>> = FormComponentSlotProps<TForm>
 
+export type InfiniteScrollRequestDetails = {
+  side: 'previous' | 'next'
+  page: string | number
+  pageName: string
+  propName: string
+  /**
+   * The reload options `<InfiniteScroll>` would have passed to `router.reload`.
+   * `onBefore`, `onBeforeUpdate`, `onSuccess`, `onFinish`, and `onCancelToken`
+   * keep the component's loading state and row tagging in sync. Forward them
+   * from the visit that actually loads the page.
+   */
+  reloadOptions: ReloadOptions
+}
+
+export type InfiniteScrollRequest = (details: InfiniteScrollRequestDetails) => void
+
+export type InfiniteScrollResolveUrlDetails = {
+  /** The most visible page. `"1"` is the first page. */
+  page: string
+  pageName: string
+}
+
+export type InfiniteScrollResolveUrl = (details: InfiniteScrollResolveUrlDetails) => string
+
 export interface UseInfiniteScrollOptions {
   // Core data
   getPropName: () => string
@@ -886,6 +910,10 @@ export interface UseInfiniteScrollOptions {
   shouldFetchPrevious: () => boolean
   shouldPreserveUrl: () => boolean
   getReloadOptions?: () => ReloadOptions
+  /** When this returns a function, that function performs the page visit instead of `router.reload`. */
+  getRequest?: () => InfiniteScrollRequest | undefined
+  /** When this returns a function, that function supplies the URL for the visible page. */
+  getResolveUrl?: () => InfiniteScrollResolveUrl | undefined
 
   // Elements
   getTriggerMargin: () => number
@@ -966,6 +994,10 @@ export interface InfiniteScrollComponentBaseProps {
   autoScroll?: boolean
   onlyNext?: boolean
   onlyPrevious?: boolean
+  /** Performs the next or previous page visit. Absent means `router.reload`. */
+  request?: InfiniteScrollRequest
+  /** Builds the URL written when the visible page changes. Absent means the `page.url` writer. */
+  resolveUrl?: InfiniteScrollResolveUrl
 }
 
 export type UseHttpOptions<TResponse = unknown> = {

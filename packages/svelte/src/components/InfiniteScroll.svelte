@@ -24,6 +24,8 @@
     endElement?: string | (() => HTMLElement | null) | null
     itemsElement?: string | (() => HTMLElement | null) | null
     params?: ReloadOptions
+    request?: InfiniteScrollComponentBaseProps['request']
+    resolveUrl?: InfiniteScrollComponentBaseProps['resolveUrl']
     onlyNext?: boolean
     onlyPrevious?: boolean
     previous?: import('svelte').Snippet<[any]>
@@ -46,6 +48,8 @@
     endElement = null,
     itemsElement = null,
     params = {},
+    request = undefined,
+    resolveUrl = undefined,
     onlyNext = false,
     onlyPrevious = false,
     previous,
@@ -139,6 +143,8 @@
       shouldFetchPrevious: () => !onlyNext,
       shouldPreserveUrl: () => preserveUrl ?? false,
       getReloadOptions: () => params,
+      getRequest: () => request,
+      getResolveUrl: () => resolveUrl,
 
       // Elements
       getTriggerMargin: () => buffer ?? 0,

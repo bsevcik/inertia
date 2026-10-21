@@ -12,6 +12,17 @@ let initialUrl: URL | null
 let payloadUrl: URL | null
 let initialUrlWasAbsolute: boolean | null = null
 
+const isCurrentLocation = (url: string) => {
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  const current = hrefToUrl(window.location.href)
+  const next = hrefToUrl(url)
+
+  return current.pathname === next.pathname && current.search === next.search && current.hash === next.hash
+}
+
 /**
  * As users scroll through infinite content, this system updates the URL to reflect
  * which page they're currently viewing. It uses a "most visible page" calculation
@@ -21,10 +32,35 @@ export const useInfiniteScrollQueryString = (options: {
   getPageName: () => string
   getItemsElement: () => HTMLElement
   shouldPreserveUrl: () => boolean
+  getResolveUrl?: () => ((details: { page: string; pageName: string }) => string) | undefined
 }) => {
   let enabled = true
 
   const queuePageUpdate = (page: string) => {
+    const resolveUrl = options.getResolveUrl?.()
+
+    if (resolveUrl) {
+      queue.add(() => {
+        if (!enabled) {
+          return Promise.resolve()
+        }
+
+        const url = resolveUrl({ page, pageName: options.getPageName() })
+
+        if (!isCurrentLocation(url)) {
+          router.replace({
+            url,
+            preserveScroll: true,
+            preserveState: true,
+          })
+        }
+
+        return Promise.resolve()
+      })
+
+      return
+    }
+
     queue
       .add(() => {
         return new Promise((resolve) => {
